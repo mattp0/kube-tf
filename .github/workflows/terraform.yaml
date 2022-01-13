@@ -1,0 +1,56 @@
+name: 'Terraform CLI'
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Terraform Init
+      run: terraform init
+      
+    - name: Terraform Format
+      run: terraform fmt -check -recursive
+      
+    - name: Terraform Plan
+      id: plan
+      run: terraform plan -out plan.tfplan
+
+    - name: Terraform Show
+      id: show
+      run: terraform show -json plan.tfplan
+      
+    - name: Terraform Save Plan
+      id: save
+      run: echo '${{ steps.show.outputs.stdout }}' > plan.json # Do not change
+    
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+      run: terraform apply -auto-approve
+
+    - name: Run Infracost Diff
+      id: infra
+      uses: infracost/infracost-gh-action@master # Use a specific version instead of master if locking is preferred
+      env:
+        INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        path: plan.json
+
+    - name: Terraform Outputs
+      id: output
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+      run: terraform output -json control-ip
