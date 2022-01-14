@@ -38,7 +38,7 @@ jobs:
       run: echo '${{ steps.show.outputs.stdout }}' > plan.json # Do not change
     
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terraform apply -auto-approve
 
     - name: Run Infracost Diff
@@ -52,5 +52,5 @@ jobs:
 
     - name: Terraform Outputs
       id: output
-      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-      run: terraform output -json control-ip
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform output -json gke-ip
